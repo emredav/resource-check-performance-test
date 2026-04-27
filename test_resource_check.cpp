@@ -50,6 +50,36 @@ std::string captureCpuApiCostOutput(int iterations) {
     return output.str();
 }
 
+std::string captureNetworkCheckOutput() {
+    std::ostringstream output;
+    resource_check::runNetworkCheck(output, false);
+    return output.str();
+}
+
+std::string captureSystemRamApiCostOutput(int iterations) {
+    std::ostringstream output;
+    resource_check::benchmarkSystemRamApiCost(output, iterations);
+    return output.str();
+}
+
+std::string captureProcessRamApiCostOutput(int iterations) {
+    std::ostringstream output;
+    resource_check::benchmarkProcessRamApiCost(output, iterations);
+    return output.str();
+}
+
+std::string captureNetworkApiCostOutput(int iterations) {
+    std::ostringstream output;
+    resource_check::benchmarkNetworkApiCost(output, iterations);
+    return output.str();
+}
+
+std::string captureNetworkTableCostOutput(int iterations) {
+    std::ostringstream output;
+    resource_check::benchmarkNetworkTableCost(output, iterations);
+    return output.str();
+}
+
 void requireContains(const std::string &text, const std::string &needle, const std::string &message) {
     if (text.find(needle) == std::string::npos) {
         std::cerr << message << std::endl;
@@ -151,6 +181,106 @@ CpuApiSummary runCpuApiCostTest(int apiIterations) {
     return summary;
 }
 
+CpuApiSummary runSystemRamApiCostTest(int apiIterations) {
+    CpuApiSummary summary;
+    summary.testName = "Sistem RAM API Cagri";
+    summary.iterations = apiIterations;
+
+    summary.output = captureSystemRamApiCostOutput(apiIterations);
+
+    requireContains(summary.output, "Cagri Basina API Maliyeti", "Sistem RAM API Cagri maliyeti ciktisi eksik.");
+
+    summary.averageNanoseconds = extractMetricValue(summary.output, "Cagri Basina API Maliyeti  : ");
+    if (summary.averageNanoseconds < 0.0) {
+        std::cerr << "Sistem RAM API Cagri maliyeti parse edilemedi." << std::endl;
+        std::exit(1);
+    }
+
+    return summary;
+}
+
+CpuApiSummary runProcessRamApiCostTest(int apiIterations) {
+    CpuApiSummary summary;
+    summary.testName = "Process RAM API Cagri";
+    summary.iterations = apiIterations;
+
+    summary.output = captureProcessRamApiCostOutput(apiIterations);
+
+    requireContains(summary.output, "Cagri Basina API Maliyeti", "Process RAM API Cagri maliyeti ciktisi eksik.");
+
+    summary.averageNanoseconds = extractMetricValue(summary.output, "Cagri Basina API Maliyeti  : ");
+    if (summary.averageNanoseconds < 0.0) {
+        std::cerr << "Process RAM API Cagri maliyeti parse edilemedi." << std::endl;
+        std::exit(1);
+    }
+
+    return summary;
+}
+
+BenchmarkSummary benchmarkNetworkCheck(int iterations) {
+    BenchmarkSummary summary;
+    summary.testName = "Network";
+
+    long long totalMicroseconds = 0;
+    const auto globalStartTime = std::chrono::steady_clock::now();
+
+    std::string lastOutput;
+    for (int iteration = 0; iteration < iterations; ++iteration) {
+        const auto startTime = std::chrono::steady_clock::now();
+        lastOutput = captureNetworkCheckOutput();
+        const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - startTime);
+        totalMicroseconds += elapsed.count();
+    }
+
+    const auto totalElapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - globalStartTime);
+
+    requireContains(lastOutput, "Ag Arayuzu Bilgileri", "Ag Arayuzu ciktisi eksik.");
+
+    summary.totalMicroseconds = totalElapsed.count();
+    summary.averageMicroseconds = totalMicroseconds / iterations;
+    summary.lastOutput = lastOutput;
+
+    return summary;
+}
+
+CpuApiSummary runNetworkApiCostTest(int apiIterations) {
+    CpuApiSummary summary;
+    summary.testName = "Network API Cagri";
+    summary.iterations = apiIterations;
+
+    summary.output = captureNetworkApiCostOutput(apiIterations);
+
+    requireContains(summary.output, "Cagri Basina API Maliyeti", "Network API Cagri maliyeti ciktisi eksik.");
+
+    summary.averageNanoseconds = extractMetricValue(summary.output, "Cagri Basina API Maliyeti  : ");
+    if (summary.averageNanoseconds < 0.0) {
+        std::cerr << "Network API Cagri maliyeti parse edilemedi." << std::endl;
+        std::exit(1);
+    }
+
+    return summary;
+}
+
+CpuApiSummary runNetworkTableApiCostTest(int apiIterations) {
+    CpuApiSummary summary;
+    summary.testName = "Network Tablo API Cagri";
+    summary.iterations = apiIterations;
+
+    summary.output = captureNetworkTableCostOutput(apiIterations);
+
+    requireContains(summary.output, "Cagri Basina API Maliyeti", "Network Tablo API Cagri maliyeti ciktisi eksik.");
+
+    summary.averageNanoseconds = extractMetricValue(summary.output, "Cagri Basina API Maliyeti  : ");
+    if (summary.averageNanoseconds < 0.0) {
+        std::cerr << "Network Tablo API Cagri maliyeti parse edilemedi." << std::endl;
+        std::exit(1);
+    }
+
+    return summary;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -181,31 +311,149 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Repeat count'u API test icin ayarlama (daha hizli API testleri icin daha buyuk sayi)
+    int apiIterations = repeatCount;
+    int networkIterations = repeatCount / 100; // Network testi daha yavass, daha az tekrar
+
     BenchmarkSummary ramSummary = benchmarkResourceCheck(repeatCount);
     BenchmarkSummary cpuSummary = benchmarkCpuCheck(repeatCount);
-    CpuApiSummary apiSummary = runCpuApiCostTest(repeatCount);
+    BenchmarkSummary networkSummary = benchmarkNetworkCheck(networkIterations);
+    
+    CpuApiSummary systemRamApiSummary = runSystemRamApiCostTest(apiIterations);
+    CpuApiSummary processRamApiSummary = runProcessRamApiCostTest(apiIterations);
+    CpuApiSummary cpuApiSummary = runCpuApiCostTest(apiIterations);
+    CpuApiSummary networkApiSummary = runNetworkApiCostTest(apiIterations / 100); // Network API daha yavass
+    CpuApiSummary networkTableApiSummary = runNetworkTableApiCostTest(apiIterations / 100);
 
     std::ostringstream report;
+    report << "========================================\n";
+    report << "      SISTEM KAYNAGI BENCHMARK RAPORU\n";
+    report << "========================================\n\n";
     report << "[Test Platformu]: " << PLATFORM_NAME << "\n";
-    report << "Tekrar Sayisi   : " << repeatCount << "\n\n";
+    report << "[Tekrar Sayisi - Genel Testler]: " << repeatCount << "\n";
+    report << "[Tekrar Sayisi - RAM API Testleri]: " << apiIterations << "\n";
+    report << "[Tekrar Sayisi - CPU API Testleri]: " << apiIterations << "\n";
+    report << "[Tekrar Sayisi - Network Testleri]: " << networkIterations << "\n";
+    report << "[Tekrar Sayisi - Network API Testleri]: " << (apiIterations / 100) << "\n\n";
 
-    report << "=== RAM Testi ===\n";
+    // ===== GENEL RAM TESTI =====
+    report << "========================================\n";
+    report << "=== GENEL RAM TESTI (Komple Islem) ===\n";
+    report << "========================================\n";
     report << "Toplam test calisma suresi (RAM): " << ramSummary.totalMicroseconds << " us\n";
-    report << "Ortalama (1 tekrar icin) calisma suresi: " << ramSummary.averageMicroseconds << " us\n\n";
+    report << "Ortalama (1 tekrar icin): " << ramSummary.averageMicroseconds << " us\n";
     report << "--- Son Iterasyon Ciktisi (RAM) ---\n";
     report << ramSummary.lastOutput;
     report << "-------------------------------------------\n\n";
 
-    report << "=== CPU Testi ===\n";
+    // ===== SISTEM RAM API MALIYET TESTI =====
+    report << "========================================\n";
+    report << "=== SISTEM RAM API MALIYET TESTI ===\n";
+    report << "========================================\n";
+    report << systemRamApiSummary.output;
+    report << "-------------------------------------------\n\n";
+
+    // ===== PROCESS RAM API MALIYET TESTI =====
+    report << "========================================\n";
+    report << "=== PROCESS RAM API MALIYET TESTI ===\n";
+    report << "========================================\n";
+    report << processRamApiSummary.output;
+    report << "-------------------------------------------\n\n";
+
+    // ===== GENEL CPU TESTI =====
+    report << "========================================\n";
+    report << "=== GENEL CPU TESTI (Komple Islem) ===\n";
+    report << "========================================\n";
     report << "Toplam test calisma suresi (CPU): " << cpuSummary.totalMicroseconds << " us\n";
-    report << "Ortalama (1 tekrar icin) calisma suresi: " << cpuSummary.averageMicroseconds << " us\n\n";
+    report << "Ortalama (1 tekrar icin): " << cpuSummary.averageMicroseconds << " us\n";
     report << "--- Son Iterasyon Ciktisi (CPU) ---\n";
     report << cpuSummary.lastOutput;
     report << "-------------------------------------------\n\n";
 
-    report << "=== CPU API Maliyet Testi ===\n";
-    report << apiSummary.output;
+    // ===== CPU API MALIYET TESTI =====
+    report << "========================================\n";
+    report << "=== CPU API MALIYET TESTI ===\n";
+    report << "========================================\n";
+    report << cpuApiSummary.output;
     report << "-------------------------------------------\n\n";
+
+    // ===== GENEL NETWORK TESTI =====
+    report << "========================================\n";
+    report << "=== GENEL NETWORK TESTI (Komple Islem) ===\n";
+    report << "========================================\n";
+    report << "Toplam test calisma suresi (Network): " << networkSummary.totalMicroseconds << " us\n";
+    report << "Ortalama (1 tekrar icin): " << networkSummary.averageMicroseconds << " us\n";
+    report << "--- Son Iterasyon Ciktisi (Network) ---\n";
+    report << networkSummary.lastOutput;
+    report << "-------------------------------------------\n\n";
+
+    // ===== NETWORK API MALIYET TESTLERI =====
+    report << "========================================\n";
+    report << "=== NETWORK API MALIYET TESTLERI ===\n";
+    report << "========================================\n";
+    report << networkApiSummary.output;
+    report << "-------------------------------------------\n\n";
+
+    report << "========================================\n";
+    report << "=== NETWORK TABLO API MALIYET TESTI ===\n";
+    report << "========================================\n";
+    report << networkTableApiSummary.output;
+    report << "-------------------------------------------\n\n";
+
+    // ===== KARSILASTIRMA TABLOSU =====
+    report << "========================================\n";
+    report << "=== API MALIYET KARSILASTIRMASI ===\n";
+    report << "========================================\n\n";
+    report << "API Cagri Ortalama Süresi (nanosaniye cinsinden):\n";
+    report << "1. Sistem RAM API        : " << systemRamApiSummary.averageNanoseconds << " ns\n";
+    report << "2. Process RAM API       : " << processRamApiSummary.averageNanoseconds << " ns\n";
+    report << "3. CPU API               : " << cpuApiSummary.averageNanoseconds << " ns\n";
+    report << "4. Network API           : " << networkApiSummary.averageNanoseconds << " ns\n";
+    report << "5. Network Tablo API     : " << networkTableApiSummary.averageNanoseconds << " ns\n\n";
+
+    // En hizli ve en yavas API'leri belirle
+    double minTime = systemRamApiSummary.averageNanoseconds;
+    std::string minApi = "Sistem RAM API";
+    double maxTime = systemRamApiSummary.averageNanoseconds;
+    std::string maxApi = "Sistem RAM API";
+
+    if (processRamApiSummary.averageNanoseconds < minTime) {
+        minTime = processRamApiSummary.averageNanoseconds;
+        minApi = "Process RAM API";
+    }
+    if (cpuApiSummary.averageNanoseconds < minTime) {
+        minTime = cpuApiSummary.averageNanoseconds;
+        minApi = "CPU API";
+    }
+    if (networkApiSummary.averageNanoseconds < minTime) {
+        minTime = networkApiSummary.averageNanoseconds;
+        minApi = "Network API";
+    }
+    if (networkTableApiSummary.averageNanoseconds < minTime) {
+        minTime = networkTableApiSummary.averageNanoseconds;
+        minApi = "Network Tablo API";
+    }
+
+    if (processRamApiSummary.averageNanoseconds > maxTime) {
+        maxTime = processRamApiSummary.averageNanoseconds;
+        maxApi = "Process RAM API";
+    }
+    if (cpuApiSummary.averageNanoseconds > maxTime) {
+        maxTime = cpuApiSummary.averageNanoseconds;
+        maxApi = "CPU API";
+    }
+    if (networkApiSummary.averageNanoseconds > maxTime) {
+        maxTime = networkApiSummary.averageNanoseconds;
+        maxApi = "Network API";
+    }
+    if (networkTableApiSummary.averageNanoseconds > maxTime) {
+        maxTime = networkTableApiSummary.averageNanoseconds;
+        maxApi = "Network Tablo API";
+    }
+
+    report << "\nEn Hizli API         : " << minApi << " (" << minTime << " ns)\n";
+    report << "En Yavas API         : " << maxApi << " (" << maxTime << " ns)\n";
+    report << "Hiz Farki            : " << (maxTime / minTime) << "x\n";
 
     std::cout << report.str();
     outputFile << report.str();
