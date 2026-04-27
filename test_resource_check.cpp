@@ -330,6 +330,11 @@ int main(int argc, char* argv[]) {
     report << "      SISTEM KAYNAGI BENCHMARK RAPORU\n";
     report << "========================================\n\n";
     report << "[Test Platformu]: " << PLATFORM_NAME << "\n";
+#ifdef _WIN32
+    report << "[Network Ag Yontemi]: GetAdaptersInfo() ve GetIfTable()\n";
+#else
+    report << "[Network Ag Yontemi]: getifaddrs() ve /proc/net/dev okuma/ayristirma\n";
+#endif
     report << "[Tekrar Sayisi - Genel Testler]: " << repeatCount << "\n";
     report << "[Tekrar Sayisi - RAM API Testleri]: " << apiIterations << "\n";
     report << "[Tekrar Sayisi - CPU API Testleri]: " << apiIterations << "\n";

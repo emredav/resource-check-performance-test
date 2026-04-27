@@ -206,17 +206,37 @@ inline void runNetworkCheck(std::ostream &out, bool waitForEnter) {
     }
 
     // /proc/net/dev'den trafik bilgilerini oku
-    out << "\n--- Ag Trafikii (son degisim) ---\n";
+    out << "\n--- Ag Istatistikleri ---\n";
     std::ifstream netDevFile("/proc/net/dev");
     if (!netDevFile.is_open()) {
         out << "Ag trafik bilgisi alinamadi!\n";
     } else {
         std::string line;
-        int count = 0;
-        while (std::getline(netDevFile, line) && count < 15) {
-            if (line.find(':') != std::string::npos) {
-                out << line << "\n";
-                count++;
+        // Skip first two lines
+        std::getline(netDevFile, line);
+        std::getline(netDevFile, line);
+
+        while (std::getline(netDevFile, line)) {
+            size_t colonPos = line.find(':');
+            if (colonPos != std::string::npos) {
+                std::string ifaceName = line.substr(0, colonPos);
+                // trim spaces from ifaceName
+                size_t first = ifaceName.find_first_not_of(" \t");
+                if (first != std::string::npos) ifaceName = ifaceName.substr(first);
+
+                std::istringstream iss(line.substr(colonPos + 1));
+                unsigned long long rx_bytes, rx_packets, rx_errs, rx_drop, rx_fifo, rx_frame, rx_compressed, rx_multicast;
+                unsigned long long tx_bytes, tx_packets, tx_errs, tx_drop, tx_fifo, tx_colls, tx_carrier, tx_compressed;
+
+                if (iss >> rx_bytes >> rx_packets >> rx_errs >> rx_drop >> rx_fifo >> rx_frame >> rx_compressed >> rx_multicast
+                        >> tx_bytes >> tx_packets >> tx_errs >> tx_drop >> tx_fifo >> tx_colls >> tx_carrier >> tx_compressed) {
+                    
+                    out << "Arayuz: " << ifaceName << "\n";
+                    out << "  Gelen Bayt: " << rx_bytes << "\n";
+                    out << "  Cikan Bayt: " << tx_bytes << "\n";
+                    out << "  Gelen Paket: " << rx_packets << "\n";
+                    out << "  Cikan Paket: " << tx_packets << "\n";
+                }
             }
         }
     }
@@ -252,40 +272,28 @@ inline void benchmarkNetworkApiCost(std::ostream &out, int iterations) {
     out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
 }
 
-inline void benchmarkNetworkFileReadCost(std::ostream &out, int iterations) {
-    out << "--- Ag Dosya Okuma API Cagri Maliyeti (Linux: /proc/net/dev) ---\n";
+inline void benchmarkNetworkTableCost(std::ostream &out, int iterations) {
+    out << "--- Ag Tablo API Cagri Maliyeti (Linux: /proc/net/dev Dosya Okuma) ---\n";
     
     const auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < iterations; ++i) {
         std::ifstream netDevFile("/proc/net/dev");
-        std::string line;
-        int count = 0;
-        while (std::getline(netDevFile, line) && count < 15) {
-            if (line.find(':') != std::string::npos) {
-                count++;
+        if (netDevFile.is_open()) {
+            std::string line;
+            std::getline(netDevFile, line);
+            std::getline(netDevFile, line);
+
+            while (std::getline(netDevFile, line)) {
+                size_t colonPos = line.find(':');
+                if (colonPos != std::string::npos) {
+                    std::istringstream iss(line.substr(colonPos + 1));
+                    unsigned long long rx_bytes, rx_packets, rx_errs, rx_drop, rx_fifo, rx_frame, rx_compressed, rx_multicast;
+                    unsigned long long tx_bytes, tx_packets, tx_errs, tx_drop, tx_fifo, tx_colls, tx_carrier, tx_compressed;
+
+                    iss >> rx_bytes >> rx_packets >> rx_errs >> rx_drop >> rx_fifo >> rx_frame >> rx_compressed >> rx_multicast
+                        >> tx_bytes >> tx_packets >> tx_errs >> tx_drop >> tx_fifo >> tx_colls >> tx_carrier >> tx_compressed;
+                }
             }
-        }
-    }
-    const auto end = std::chrono::steady_clock::now();
-    
-    long long totalNs = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-    double averageNs = static_cast<double>(totalNs) / iterations;
-
-    out << "Toplam Okuma Sayisi: " << iterations << "\n";
-    out << "Toplam Gecen Zaman : " << (totalNs / 1000.0) << " us\n";
-    out << std::fixed << std::setprecision(3);
-    out << "Okuma Basina Zaman : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
-}
-
-inline void benchmarkNetworkTableCost(std::ostream &out, int iterations) {
-    out << "--- Ag Tablo API Cagri Maliyeti (Linux: getifaddrs()) ---\n";
-    
-    struct ifaddrs *ifaddr;
-    
-    const auto start = std::chrono::steady_clock::now();
-    for (int i = 0; i < iterations; ++i) {
-        if (getifaddrs(&ifaddr) == 0) {
-            freeifaddrs(ifaddr);
         }
     }
     const auto end = std::chrono::steady_clock::now();

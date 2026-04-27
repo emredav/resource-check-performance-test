@@ -1,0 +1,113 @@
+========================================
+      SISTEM KAYNAGI BENCHMARK RAPORU
+========================================
+
+[Test Platformu]: Windows
+[Network Ag Yontemi]: GetAdaptersInfo() ve GetIfTable()
+[Tekrar Sayisi - Genel Testler]: 1000000
+[Tekrar Sayisi - RAM API Testleri]: 1000000
+[Tekrar Sayisi - CPU API Testleri]: 1000000
+[Tekrar Sayisi - Network Testleri]: 10000
+[Tekrar Sayisi - Network API Testleri]: 10000
+
+========================================
+=== GENEL RAM TESTI (Komple Islem) ===
+========================================
+Toplam test calisma suresi (RAM): 1119634 us
+Ortalama (1 tekrar icin): 1 us
+--- Son Iterasyon Ciktisi (RAM) ---
+--- Sistem Bellek (RAM) Bilgileri ---
+Toplam Fiziksel RAM : 32621 MB
+Kullanilan RAM      : 12025 MB
+Bos (Kullanilabilir): 20596 MB
+Sistem RAM Yuku     : %36
+
+--- Mevcut Process (Uygulama) Bellek Bilgisi ---
+Fiziksel RAM Kullanimi (Working Set) : 5 MB
+
+Son Dongu Calisma Suresi: 0 us
+-------------------------------------------
+
+========================================
+=== SISTEM RAM API MALIYET TESTI ===
+========================================
+--- Sistem RAM API Cagri Maliyeti (Windows: GlobalMemoryStatusEx()) ---
+Toplam Cagirilan API Sayisi: 1000000
+Toplam Gecen Zaman         : 365956 us
+Cagri Basina API Maliyeti  : 365.956 ns (0.366 us)
+-------------------------------------------
+
+========================================
+=== PROCESS RAM API MALIYET TESTI ===
+========================================
+--- Process RAM API Cagri Maliyeti (Windows: GetProcessMemoryInfo()) ---
+Toplam Cagirilan API Sayisi: 1000000
+Toplam Gecen Zaman         : 142667 us
+Cagri Basina API Maliyeti  : 142.667 ns (0.143 us)
+-------------------------------------------
+
+========================================
+=== GENEL CPU TESTI (Komple Islem) ===
+========================================
+Toplam test calisma suresi (CPU): 2192240 us
+Ortalama (1 tekrar icin): 1 us
+--- Son Iterasyon Ciktisi (CPU) ---
+--- Sistem Islemci (CPU) Bilgileri ---
+Mevcut Process User CPU Zamani  : 2.79688 saniye
+Mevcut Process Kernel CPU Zamani: 0.5 saniye
+Mevcut Process Toplam CPU Zamani: 3.29688 saniye
+
+Son Dongu Calisma Suresi: 1 us
+-------------------------------------------
+
+========================================
+=== CPU API MALIYET TESTI ===
+========================================
+--- Sistem Islemci (CPU) API Cagri Maliyeti (Windows: GetProcessTimes()) ---
+Toplam Cagirilan API Sayisi: 1000000
+Toplam Gecen Zaman         : 121686 us
+Cagri Basina API Maliyeti  : 121.686 ns (0.122 us)
+-------------------------------------------
+
+========================================
+=== GENEL NETWORK TESTI (Komple Islem) ===
+========================================
+Toplam test calisma suresi (Network): 28868217 us
+Ortalama (1 tekrar icin): 2886 us
+
+Son Dongu Calisma Suresi: 2953 us
+-------------------------------------------
+
+========================================
+=== NETWORK API MALIYET TESTLERI ===
+========================================
+--- Ag Bilgisi API Cagri Maliyeti (Windows: GetAdaptersInfo()) ---
+Toplam Cagirilan API Sayisi: 10000
+Toplam Gecen Zaman         : 8.51434e+06 us
+Cagri Basina API Maliyeti  : 851433.900 ns (851.434 us)
+-------------------------------------------
+
+========================================
+=== NETWORK TABLO API MALIYET TESTI ===
+========================================
+--- Ag Tablosu API Cagri Maliyeti (Windows: GetIfTable2()) ---
+Toplam Cagirilan API Sayisi: 10000
+Toplam Gecen Zaman         : 1.91189e+07 us
+Cagri Basina API Maliyeti  : 1.91189e+06 ns
+-------------------------------------------
+
+========================================
+=== API MALIYET KARSILASTIRMASI ===
+========================================
+
+API Cagri Ortalama Süresi (nanosaniye cinsinden):
+1. Sistem RAM API        : 365.956 ns
+2. Process RAM API       : 142.667 ns
+3. CPU API               : 121.686 ns
+4. Network API           : 851434 ns
+5. Network Tablo API     : 1.91189e+06 ns
+
+
+En Hizli API         : CPU API (121.686 ns)
+En Yavas API         : Network Tablo API (1.91189e+06 ns)
+Hiz Farki            : 15711.7x

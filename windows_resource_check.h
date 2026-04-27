@@ -199,7 +199,8 @@ inline void runNetworkCheck(std::ostream &out, bool waitForEnter) {
         if (pIfTable && GetIfTable(pIfTable, &dwOutBufLen, FALSE) == NO_ERROR) {
             for (DWORD i = 0; i < pIfTable->dwNumEntries; ++i) {
                 const MIB_IFROW &ifRow = pIfTable->table[i];
-                out << "Arayuz: " << ifRow.wszName << "\n";
+                std::string ifaceName(reinterpret_cast<const char*>(ifRow.bDescr), ifRow.dwDescrLen);
+                out << "Arayuz: " << ifaceName << "\n";
                 out << "  Gelen Bayt: " << ifRow.dwInOctets << "\n";
                 out << "  Cikan Bayt: " << ifRow.dwOutOctets << "\n";
                 out << "  Gelen Paket: " << ifRow.dwInUcastPkts << "\n";

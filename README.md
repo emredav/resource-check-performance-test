@@ -56,7 +56,7 @@ g++ -std=c++11 test_resource_check.cpp -o test_resource_check -lrt
 ./test_resource_check
 
 # Kustom tekrar sayısı ve output dosyasıyla
-./test_resource_check 100000 benchmark_output.txt
+./test_resource_check 1000000 benchmark_output.txt
 ```
 
 ### Windows (MinGW)
@@ -64,7 +64,7 @@ g++ -std=c++11 test_resource_check.cpp -o test_resource_check -lrt
 ```bash
 g++ -std=c++11 test_resource_check.cpp -o test_resource_check.exe -lpsapi -liphlpapi -lws2_32
 
-test_resource_check.exe 100000 benchmark_output.txt
+test_resource_check.exe 1000000 benchmark_output.txt
 ```
 
 ### Windows (MSVC)
