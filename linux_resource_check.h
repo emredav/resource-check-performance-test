@@ -3,6 +3,7 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <sys/sysinfo.h>
@@ -123,7 +124,8 @@ inline void benchmarkCpuApiCost(std::ostream &out, int iterations, bool waitForE
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 
     if (waitForEnter) {
         out << "\nCikmak icin bir tusa basin...";
@@ -147,7 +149,8 @@ inline void benchmarkSystemRamApiCost(std::ostream &out, int iterations) {
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 }
 
 inline void benchmarkProcessRamApiCost(std::ostream &out, int iterations) {
@@ -166,7 +169,8 @@ inline void benchmarkProcessRamApiCost(std::ostream &out, int iterations) {
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 }
 
 inline void runNetworkCheck(std::ostream &out, bool waitForEnter) {
@@ -269,7 +273,8 @@ inline void benchmarkNetworkFileReadCost(std::ostream &out, int iterations) {
 
     out << "Toplam Okuma Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman : " << (totalNs / 1000.0) << " us\n";
-    out << "Okuma Basina Zaman : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Okuma Basina Zaman : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 }
 
 inline void benchmarkNetworkTableCost(std::ostream &out, int iterations) {
@@ -290,7 +295,8 @@ inline void benchmarkNetworkTableCost(std::ostream &out, int iterations) {
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 }
 
 } // namespace linux_resource_check

@@ -2,10 +2,11 @@
 
 #include <chrono>
 #include <iostream>
+#include <iomanip>
+#include <winsock2.h>
 #include <windows.h>
 #include <psapi.h>
 #include <iphlpapi.h>
-#include <winsock2.h>
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
@@ -103,7 +104,8 @@ inline void benchmarkCpuApiCost(std::ostream &out, int iterations, bool waitForE
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 
     if (waitForEnter) {
         out << "\nCikmak icin bir tusa basin...";
@@ -128,7 +130,8 @@ inline void benchmarkSystemRamApiCost(std::ostream &out, int iterations) {
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 }
 
 inline void benchmarkProcessRamApiCost(std::ostream &out, int iterations) {
@@ -148,7 +151,8 @@ inline void benchmarkProcessRamApiCost(std::ostream &out, int iterations) {
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 }
 
 inline void runNetworkCheck(std::ostream &out, bool waitForEnter) {
@@ -168,11 +172,11 @@ inline void runNetworkCheck(std::ostream &out, bool waitForEnter) {
             while (pAdapter) {
                 out << "Arayuz: " << pAdapter->AdapterName << "\n";
                 out << "  Aciklama: " << pAdapter->Description << "\n";
-                if (pAdapter->Type == IF_TYPE_ETHERNET) {
+                if (pAdapter->Type == MIB_IF_TYPE_ETHERNET) {
                     out << "  Tur: Ethernet\n";
-                } else if (pAdapter->Type == IF_TYPE_PPP) {
+                } else if (pAdapter->Type == MIB_IF_TYPE_PPP) {
                     out << "  Tur: PPP\n";
-                } else if (pAdapter->Type == IF_TYPE_LOOPBACK) {
+                } else if (pAdapter->Type == MIB_IF_TYPE_LOOPBACK) {
                     out << "  Tur: Loopback\n";
                 } else {
                     out << "  Tur: Diger (" << pAdapter->Type << ")\n";
@@ -187,23 +191,22 @@ inline void runNetworkCheck(std::ostream &out, bool waitForEnter) {
 
     out << "\n--- Ag Istatistikleri ---\n";
     
-    PIP_INTERFACE_STATS pIfStats = NULL;
     DWORD dwOutBufLen = 0;
 
-    if (GetIfTable2(NULL, &dwOutBufLen) == ERROR_INSUFFICIENT_BUFFER) {
-        PMIB_IF_TABLE2 pIfTable = (MIB_IF_TABLE2 *) malloc(dwOutBufLen);
-        
-        if (pIfTable && GetIfTable2(&pIfTable) == NO_ERROR) {
-            for (ULONG i = 0; i < pIfTable->NumEntries; i++) {
-                MIB_IF_ROW2 ifRow = pIfTable->Table[i];
-                out << "Arayuz: " << ifRow.Description << "\n";
-                out << "  Gelen Bayt: " << ifRow.InOctets << "\n";
-                out << "  Cikan Bayt: " << ifRow.OutOctets << "\n";
-                out << "  Gelen Paket: " << ifRow.InUcastPkts << "\n";
-                out << "  Cikan Paket: " << ifRow.OutUcastPkts << "\n";
+    if (GetIfTable(NULL, &dwOutBufLen, FALSE) == ERROR_INSUFFICIENT_BUFFER) {
+        PMIB_IFTABLE pIfTable = (PMIB_IFTABLE) malloc(dwOutBufLen);
+
+        if (pIfTable && GetIfTable(pIfTable, &dwOutBufLen, FALSE) == NO_ERROR) {
+            for (DWORD i = 0; i < pIfTable->dwNumEntries; ++i) {
+                const MIB_IFROW &ifRow = pIfTable->table[i];
+                out << "Arayuz: " << ifRow.wszName << "\n";
+                out << "  Gelen Bayt: " << ifRow.dwInOctets << "\n";
+                out << "  Cikan Bayt: " << ifRow.dwOutOctets << "\n";
+                out << "  Gelen Paket: " << ifRow.dwInUcastPkts << "\n";
+                out << "  Cikan Paket: " << ifRow.dwOutUcastPkts << "\n";
             }
         }
-        FreeMibTable(pIfTable);
+        free(pIfTable);
     }
 
     const auto elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -239,7 +242,8 @@ inline void benchmarkNetworkApiCost(std::ostream &out, int iterations) {
 
     out << "Toplam Cagirilan API Sayisi: " << iterations << "\n";
     out << "Toplam Gecen Zaman         : " << (totalNs / 1000.0) << " us\n";
-    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns\n";
+    out << std::fixed << std::setprecision(3);
+    out << "Cagri Basina API Maliyeti  : " << averageNs << " ns (" << (averageNs / 1000.0) << " us)\n";
 }
 
 inline void benchmarkNetworkTableCost(std::ostream &out, int iterations) {
@@ -247,9 +251,14 @@ inline void benchmarkNetworkTableCost(std::ostream &out, int iterations) {
     
     const auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < iterations; ++i) {
-        PMIB_IF_TABLE2 pIfTable = NULL;
-        if (GetIfTable2(&pIfTable) == NO_ERROR) {
-            FreeMibTable(pIfTable);
+        DWORD dwOutBufLen = 0;
+        if (GetIfTable(NULL, &dwOutBufLen, FALSE) == ERROR_INSUFFICIENT_BUFFER) {
+            PMIB_IFTABLE pIfTable = (PMIB_IFTABLE) malloc(dwOutBufLen);
+            if (pIfTable && GetIfTable(pIfTable, &dwOutBufLen, FALSE) == NO_ERROR) {
+                free(pIfTable);
+            } else {
+                free(pIfTable);
+            }
         }
     }
     const auto end = std::chrono::steady_clock::now();
