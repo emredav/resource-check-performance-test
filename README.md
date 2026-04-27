@@ -22,6 +22,10 @@ Linux makinenizde `g++` kullanarak testleri ve Linux için uygulamanızı derley
 # Test uygulamanızı derlemek ve benchmark koşmak için
 g++ -std=c++17 test_resource_check.cpp -o test_resource_check
 ./test_resource_check
+
+# Tekrar sayisini ve output dosyasini parametre olarak vererek
+# tum test raporunu bir txt dosyasina yazabilirsiniz
+./test_resource_check 100000 benchmark_output.txt
 ```
 
 ## Derleme (Windows)
@@ -32,6 +36,9 @@ Windows'ta MinGW üzerinden:
 ```cmd
 g++ -std=c++17 test_resource_check.cpp -o test_resource_check.exe -lpsapi
 test_resource_check.exe
+
+:: Tekrar sayisi ve output dosyasi ile calistirma
+test_resource_check.exe 100000 benchmark_output.txt
 ```
 
 Eğer Linux içerisinde Windows için çapraz (cross) derleme yapmak isterseniz:
@@ -69,3 +76,10 @@ Toplam Cagirilan API Sayisi: 1000000
 Toplam Gecen Zaman         : 39598.6 us
 Cagri Basina API Maliyeti  : 39.5986 ns
 ```
+
+## Parametreler
+
+- `argv[1]` (opsiyonel): Test tekrar sayisi (`x`). Varsayilan: `1000000`
+- `argv[2]` (opsiyonel): Raporun yazilacagi output txt dosyasi. Varsayilan: `benchmark_output.txt`
+
+Uygulama, tum testlerin sonucunu hem konsola yazar hem de belirtilen txt dosyasina kaydeder.

@@ -1,7 +1,9 @@
 #include <chrono>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #ifdef _WIN32
@@ -15,6 +17,20 @@ const char* PLATFORM_NAME = "Linux";
 #endif
 
 namespace {
+
+struct BenchmarkSummary {
+    std::string testName;
+    long long totalMicroseconds = 0;
+    long long averageMicroseconds = 0;
+    std::string lastOutput;
+};
+
+struct CpuApiSummary {
+    std::string testName;
+    int iterations = 0;
+    double averageNanoseconds = 0.0;
+    std::string output;
+};
 
 std::string captureResourceCheckOutput() {
     std::ostringstream output;
@@ -41,8 +57,26 @@ void requireContains(const std::string &text, const std::string &needle, const s
     }
 }
 
-void benchmarkResourceCheck(int iterations) {
-    std::cout << "[Test Platformu]: " << PLATFORM_NAME << " algilandi ve RAM test baslatiliyor...\n\n";
+double extractMetricValue(const std::string &text, const std::string &metricPrefix) {
+    const std::size_t metricPos = text.find(metricPrefix);
+    if (metricPos == std::string::npos) {
+        return -1.0;
+    }
+
+    const std::size_t valueStart = metricPos + metricPrefix.size();
+    const std::size_t valueEnd = text.find_first_of(" \n\r", valueStart);
+    const std::string valueText = text.substr(valueStart, valueEnd - valueStart);
+
+    try {
+        return std::stod(valueText);
+    } catch (...) {
+        return -1.0;
+    }
+}
+
+BenchmarkSummary benchmarkResourceCheck(int iterations) {
+    BenchmarkSummary summary;
+    summary.testName = "RAM";
 
     long long totalMicroseconds = 0;
     const auto globalStartTime = std::chrono::steady_clock::now();
@@ -63,16 +97,16 @@ void benchmarkResourceCheck(int iterations) {
     requireContains(lastOutput, "Fiziksel RAM Kullanimi (Working Set)", "Process RAM ciktisi eksik.");
     requireContains(lastOutput, "Son Dongu Calisma Suresi", "Calisma suresi ciktisi eksik.");
 
-    const long long averageMicroseconds = totalMicroseconds / iterations;
+    summary.totalMicroseconds = totalElapsed.count();
+    summary.averageMicroseconds = totalMicroseconds / iterations;
+    summary.lastOutput = lastOutput;
 
-    std::cout << "Toplam test calisma suresi (RAM): " << totalElapsed.count() << " us" << std::endl;
-    std::cout << "Ortalama (1 tekrar icin) calisma suresi: " << averageMicroseconds << " us\n" << std::endl;
-    std::cout << "--- Son Iterasyon Ciktisi (RAM) ---" << std::endl;
-    std::cout << lastOutput;
+    return summary;
 }
 
-void benchmarkCpuCheck(int iterations) {
-    std::cout << "[Test Platformu]: " << PLATFORM_NAME << " algilandi ve CPU test baslatiliyor...\n\n";
+BenchmarkSummary benchmarkCpuCheck(int iterations) {
+    BenchmarkSummary summary;
+    summary.testName = "CPU";
 
     long long totalMicroseconds = 0;
     const auto globalStartTime = std::chrono::steady_clock::now();
@@ -92,31 +126,90 @@ void benchmarkCpuCheck(int iterations) {
     requireContains(lastOutput, "Mevcut Process User CPU Zamani", "CPU zamani ciktisi eksik.");
     requireContains(lastOutput, "Son Dongu Calisma Suresi", "Calisma suresi ciktisi eksik.");
 
-    const long long averageMicroseconds = totalMicroseconds / iterations;
+    summary.totalMicroseconds = totalElapsed.count();
+    summary.averageMicroseconds = totalMicroseconds / iterations;
+    summary.lastOutput = lastOutput;
 
-    std::cout << "Toplam test calisma suresi (CPU): " << totalElapsed.count() << " us" << std::endl;
-    std::cout << "Ortalama (1 tekrar icin) calisma suresi: " << averageMicroseconds << " us\n" << std::endl;
-    std::cout << "--- Son Iterasyon Ciktisi (CPU) ---" << std::endl;
-    std::cout << lastOutput;
+    return summary;
 }
 
-void runCpuApiCostTest(int apiIterations) {
-    std::cout << "[Test Platformu]: " << PLATFORM_NAME << " algilandi ve islemci API maliyet testi baslatiliyor...\n\n";
-    
-    std::string apiOutput = captureCpuApiCostOutput(apiIterations);
-    
-    requireContains(apiOutput, "Cagri Basina API Maliyeti", "API Cagri maliyeti ciktisi eksik.");
-    
-    std::cout << apiOutput;
+CpuApiSummary runCpuApiCostTest(int apiIterations) {
+    CpuApiSummary summary;
+    summary.testName = "CPU API Cagri";
+    summary.iterations = apiIterations;
+
+    summary.output = captureCpuApiCostOutput(apiIterations);
+
+    requireContains(summary.output, "Cagri Basina API Maliyeti", "API Cagri maliyeti ciktisi eksik.");
+
+    summary.averageNanoseconds = extractMetricValue(summary.output, "Cagri Basina API Maliyeti  : ");
+    if (summary.averageNanoseconds < 0.0) {
+        std::cerr << "API Cagri maliyeti parse edilemedi." << std::endl;
+        std::exit(1);
+    }
+
+    return summary;
 }
 
 } // namespace
 
-int main() {
-    benchmarkResourceCheck(1000000);
-    std::cout << "-------------------------------------------\n\n";
-    benchmarkCpuCheck(1000000);
-    std::cout << "-------------------------------------------\n\n";
-    runCpuApiCostTest(1000000);
+int main(int argc, char* argv[]) {
+    int repeatCount = 1000000;
+    std::string outputFilePath = "benchmark_output.txt";
+
+    if (argc >= 2) {
+        try {
+            repeatCount = std::stoi(argv[1]);
+        } catch (const std::exception&) {
+            std::cerr << "Tekrar sayisi gecersiz. Ornek kullanim: test_resource_check.exe 10000 output.txt" << std::endl;
+            return 1;
+        }
+
+        if (repeatCount <= 0) {
+            std::cerr << "Tekrar sayisi pozitif bir tam sayi olmali." << std::endl;
+            return 1;
+        }
+    }
+
+    if (argc >= 3) {
+        outputFilePath = argv[2];
+    }
+
+    std::ofstream outputFile(outputFilePath);
+    if (!outputFile.is_open()) {
+        std::cerr << "Output dosyasi acilamadi: " << outputFilePath << std::endl;
+        return 1;
+    }
+
+    BenchmarkSummary ramSummary = benchmarkResourceCheck(repeatCount);
+    BenchmarkSummary cpuSummary = benchmarkCpuCheck(repeatCount);
+    CpuApiSummary apiSummary = runCpuApiCostTest(repeatCount);
+
+    std::ostringstream report;
+    report << "[Test Platformu]: " << PLATFORM_NAME << "\n";
+    report << "Tekrar Sayisi   : " << repeatCount << "\n\n";
+
+    report << "=== RAM Testi ===\n";
+    report << "Toplam test calisma suresi (RAM): " << ramSummary.totalMicroseconds << " us\n";
+    report << "Ortalama (1 tekrar icin) calisma suresi: " << ramSummary.averageMicroseconds << " us\n\n";
+    report << "--- Son Iterasyon Ciktisi (RAM) ---\n";
+    report << ramSummary.lastOutput;
+    report << "-------------------------------------------\n\n";
+
+    report << "=== CPU Testi ===\n";
+    report << "Toplam test calisma suresi (CPU): " << cpuSummary.totalMicroseconds << " us\n";
+    report << "Ortalama (1 tekrar icin) calisma suresi: " << cpuSummary.averageMicroseconds << " us\n\n";
+    report << "--- Son Iterasyon Ciktisi (CPU) ---\n";
+    report << cpuSummary.lastOutput;
+    report << "-------------------------------------------\n\n";
+
+    report << "=== CPU API Maliyet Testi ===\n";
+    report << apiSummary.output;
+    report << "-------------------------------------------\n\n";
+
+    std::cout << report.str();
+    outputFile << report.str();
+
+    std::cout << "\nRapor dosyaya yazildi: " << outputFilePath << std::endl;
     return 0;
 }
