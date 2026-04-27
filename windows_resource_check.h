@@ -2,8 +2,8 @@
 
 #include <chrono>
 #include <iostream>
-#include <psapi.h>
 #include <windows.h>
+#include <psapi.h>
 
 namespace windows_resource_check {
 
