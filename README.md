@@ -7,7 +7,7 @@ Bu proje hem Linux hem de Windows sistemlerde çalışan ve sistem belleği (RAM
 * `linux_resource_check.h` : Linux'a özgü sistem kaynağı çekme implementasyonları:
   - `sysinfo()` - Sistem RAM bilgisi (122.5 ns)
   - `getrusage()` - Process RAM bilgisi (179.3 ns)
-  - `times()` - CPU zaman bilgisi (143.0 ns)
+  - `clock_gettime(CLOCK_PROCESS_CPUTIME_ID)` - Process CPU zamanı
   - `getifaddrs()` - Ağ arabirüzü bilgisi (63.4 µs)
   
 * `windows_resource_check.h` : Windows'a özgü sistem kaynağı çekme implementasyonları:
@@ -31,8 +31,8 @@ Bu proje hem Linux hem de Windows sistemlerde çalışan ve sistem belleği (RAM
 - **Process RAM API Maliyeti**: `getrusage()` (Linux) vs `GetProcessMemoryInfo()` (Windows)
 
 ### 2. CPU Testleri
-- **Genel CPU Testi**: Process'in tükettiği CPU zamanını (User, Kernel, Total) ölçer
-- **CPU API Maliyeti**: `times()` (Linux) vs `GetProcessTimes()` (Windows)
+- **Genel CPU Testi**: Process'in tükettiği toplam CPU zamanını ölçer
+- **CPU API Maliyeti**: `clock_gettime(CLOCK_PROCESS_CPUTIME_ID)` (Linux) vs `GetProcessTimes()` (Windows)
 
 ### 3. Ağ Testleri (Yeni!)
 - **Genel Ağ Testi**: Aktif ağ arabirüzlerini ve trafik bilgisini gösterir
@@ -131,7 +131,7 @@ Linux sistemlerde nanosaniye düzeyinde ölçülen API çağrı maliyetleri:
 |-----|-----|------------------|
 | sysinfo() | Sistem RAM | ~122 ns |
 | getrusage() | Process RAM | ~179 ns |
-| times() | CPU Zaman | ~143 ns |
+| clock_gettime(CLOCK_PROCESS_CPUTIME_ID) | CPU Zaman | Process CPU zamanı için tercih edilen hızlı yol |
 | getifaddrs() | Ağ Info | ~63.4 µs |
 
 ## Notlar

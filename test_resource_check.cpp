@@ -153,7 +153,7 @@ BenchmarkSummary benchmarkCpuCheck(int iterations) {
     const auto totalElapsed = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now() - globalStartTime);
 
-    requireContains(lastOutput, "Mevcut Process User CPU Zamani", "CPU zamani ciktisi eksik.");
+    requireContains(lastOutput, "Mevcut Process CPU Zamani", "CPU zamani ciktisi eksik.");
     requireContains(lastOutput, "Son Dongu Calisma Suresi", "Calisma suresi ciktisi eksik.");
 
     summary.totalMicroseconds = totalElapsed.count();

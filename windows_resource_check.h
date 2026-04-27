@@ -58,6 +58,7 @@ inline void runCpuCheck(std::ostream &out, bool waitForEnter) {
     const auto startTime = std::chrono::steady_clock::now();
 
     out << "--- Sistem Islemci (CPU) Bilgileri ---\n";
+    out << "Kullanilan Yontem              : GetProcessTimes()\n";
 
     FILETIME creationTime, exitTime, kernelTime, userTime;
     if (GetProcessTimes(GetCurrentProcess(), &creationTime, &exitTime, &kernelTime, &userTime)) {
@@ -89,6 +90,7 @@ inline void runCpuCheck(std::ostream &out, bool waitForEnter) {
 
 inline void benchmarkCpuApiCost(std::ostream &out, int iterations, bool waitForEnter) {
     out << "--- Sistem Islemci (CPU) API Cagri Maliyeti (Windows: GetProcessTimes()) ---\n";
+    out << "Kullanilan Yontem              : GetProcessTimes()\n";
     
     FILETIME creationTime, exitTime, kernelTime, userTime;
     HANDLE currentProcess = GetCurrentProcess();

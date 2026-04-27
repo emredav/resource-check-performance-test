@@ -53,6 +53,7 @@ Toplam test calisma suresi (CPU): 2192240 us
 Ortalama (1 tekrar icin): 1 us
 --- Son Iterasyon Ciktisi (CPU) ---
 --- Sistem Islemci (CPU) Bilgileri ---
+Kullanilan Yontem              : GetProcessTimes()
 Mevcut Process User CPU Zamani  : 2.79688 saniye
 Mevcut Process Kernel CPU Zamani: 0.5 saniye
 Mevcut Process Toplam CPU Zamani: 3.29688 saniye
@@ -64,6 +65,7 @@ Son Dongu Calisma Suresi: 1 us
 === CPU API MALIYET TESTI ===
 ========================================
 --- Sistem Islemci (CPU) API Cagri Maliyeti (Windows: GetProcessTimes()) ---
+Kullanilan Yontem              : GetProcessTimes()
 Toplam Cagirilan API Sayisi: 1000000
 Toplam Gecen Zaman         : 121686 us
 Cagri Basina API Maliyeti  : 121.686 ns (0.122 us)

@@ -1,0 +1,136 @@
+========================================
+      SISTEM KAYNAGI BENCHMARK RAPORU
+========================================
+
+[Test Platformu]: Linux
+[Network Ag Yontemi]: getifaddrs() ve /proc/net/dev okuma/ayristirma
+[Tekrar Sayisi - Genel Testler]: 1000000
+[Tekrar Sayisi - RAM API Testleri]: 1000000
+[Tekrar Sayisi - CPU API Testleri]: 1000000
+[Tekrar Sayisi - Network Testleri]: 10000
+[Tekrar Sayisi - Network API Testleri]: 10000
+
+========================================
+=== GENEL RAM TESTI (Komple Islem) ===
+========================================
+Toplam test calisma suresi (RAM): 1149789 us
+Ortalama (1 tekrar icin): 1 us
+--- Son Iterasyon Ciktisi (RAM) ---
+--- Sistem Bellek (RAM) Bilgileri ---
+Toplam Fiziksel RAM : 31941 MB
+Kullanilan RAM      : 13829 MB
+Bos (Kullanilabilir): 18112 MB
+Sistem RAM Yuku     : %43
+
+--- Mevcut Process (Uygulama) Bellek Bilgisi ---
+Fiziksel RAM Kullanimi (Working Set) : 3 MB
+
+Son Dongu Calisma Suresi: 0 us
+-------------------------------------------
+
+========================================
+=== SISTEM RAM API MALIYET TESTI ===
+========================================
+--- Sistem RAM API Cagri Maliyeti (Linux: sysinfo()) ---
+Toplam Cagirilan API Sayisi: 1000000
+Toplam Gecen Zaman         : 123204 us
+Cagri Basina API Maliyeti  : 123.204 ns (0.123 us)
+-------------------------------------------
+
+========================================
+=== PROCESS RAM API MALIYET TESTI ===
+========================================
+--- Process RAM API Cagri Maliyeti (Linux: statm pread()) ---
+Toplam Cagirilan API Sayisi: 1000000
+Toplam Gecen Zaman         : 498671 us
+Cagri Basina API Maliyeti  : 498.671 ns (0.499 us)
+-------------------------------------------
+
+========================================
+=== GENEL CPU TESTI (Komple Islem) ===
+========================================
+Toplam test calisma suresi (CPU): 681268 us
+Ortalama (1 tekrar icin): 0 us
+--- Son Iterasyon Ciktisi (CPU) ---
+--- Sistem Islemci (CPU) Bilgileri ---
+Kullanilan Yontem              : clock_gettime(CLOCK_PROCESS_CPUTIME_ID)
+Mevcut Process CPU Zamani      : 1.83181 saniye
+
+Son Dongu Calisma Suresi: 0 us
+-------------------------------------------
+
+========================================
+=== CPU API MALIYET TESTI ===
+========================================
+--- Sistem Islemci (CPU) API Cagri Maliyeti (Linux: clock_gettime()) ---
+Kullanilan Yontem              : clock_gettime(CLOCK_PROCESS_CPUTIME_ID)
+Toplam Cagirilan API Sayisi: 1000000
+Toplam Gecen Zaman         : 137159 us
+Cagri Basina API Maliyeti  : 137.159 ns (0.137 us)
+-------------------------------------------
+
+========================================
+=== GENEL NETWORK TESTI (Komple Islem) ===
+========================================
+Toplam test calisma suresi (Network): 1225393 us
+Ortalama (1 tekrar icin): 122 us
+--- Son Iterasyon Ciktisi (Network) ---
+--- Ag Arayuzu Bilgileri ---
+Arayuz: lo
+  Durum: AKTIF
+Arayuz: wlan0
+  Durum: AKTIF
+
+--- Ag Istatistikleri ---
+Arayuz: lo
+  Gelen Bayt: 214356
+  Cikan Bayt: 214356
+  Gelen Paket: 1635
+  Cikan Paket: 1635
+Arayuz: enp4s0
+  Gelen Bayt: 0
+  Cikan Bayt: 0
+  Gelen Paket: 0
+  Cikan Paket: 0
+Arayuz: wlan0
+  Gelen Bayt: 500344028
+  Cikan Bayt: 65338660
+  Gelen Paket: 433195
+  Cikan Paket: 119893
+
+Son Dongu Calisma Suresi: 123 us
+-------------------------------------------
+
+========================================
+=== NETWORK API MALIYET TESTLERI ===
+========================================
+--- Ag Bilgisi API Cagri Maliyeti (Linux: getifaddrs()) ---
+Toplam Cagirilan API Sayisi: 10000
+Toplam Gecen Zaman         : 626828 us
+Cagri Basina API Maliyeti  : 62682.8 ns
+-------------------------------------------
+
+========================================
+=== NETWORK TABLO API MALIYET TESTI ===
+========================================
+--- Ag Tablo API Cagri Maliyeti (Linux: /proc/net/dev Dosya Okuma) ---
+Toplam Cagirilan API Sayisi: 10000
+Toplam Gecen Zaman         : 444436 us
+Cagri Basina API Maliyeti  : 44443.558 ns (44.444 us)
+-------------------------------------------
+
+========================================
+=== API MALIYET KARSILASTIRMASI ===
+========================================
+
+API Cagri Ortalama Süresi (nanosaniye cinsinden):
+1. Sistem RAM API        : 123.204 ns
+2. Process RAM API       : 498.671 ns
+3. CPU API               : 137.159 ns
+4. Network API           : 62682.8 ns
+5. Network Tablo API     : 44443.6 ns
+
+
+En Hizli API         : Sistem RAM API (123.204 ns)
+En Yavas API         : Network API (62682.8 ns)
+Hiz Farki            : 508.772x

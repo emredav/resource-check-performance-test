@@ -6,14 +6,58 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <time.h>
 #include <sys/sysinfo.h>
-#include <sys/times.h>
 #include <sys/resource.h>
 #include <unistd.h>
 #include <net/if.h>
 #include <ifaddrs.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdlib.h>
 
 namespace linux_resource_check {
+
+struct ProcessMemoryCountersLinux {
+    unsigned long long WorkingSetSize;     // Anlık RSS (KB)
+};
+
+// Caching file descriptor for high performance
+inline bool GetProcessMemoryInfoFast(ProcessMemoryCountersLinux* pmc) {
+    // Bu yuzden anlik RAM'i alabilmek icin Linux'taki en hizli yontem olan /proc/self/statm kullandik.
+    static int statm_fd = -1;
+    static long page_size_kb = -1;
+
+    if (statm_fd == -1) {
+        statm_fd = open("/proc/self/statm", O_RDONLY);
+        page_size_kb = sysconf(_SC_PAGESIZE) / 1024;
+        if (statm_fd == -1) return false;
+    }
+
+    char buffer[64];
+    ssize_t bytesRead = pread(statm_fd, buffer, sizeof(buffer) - 1, 0);
+    if (bytesRead <= 0) return false;
+
+    unsigned long long residentPages = 0;
+    char* p = buffer;
+
+    // 1. Degeri (Sanal bellek) tamamen es gec (bosluga kadar ilerle)
+    while (*p != ' ') {
+        ++p;
+    }
+    ++p; // Boslugu atla
+
+    // 2. Deger (Anlik fiziksel bellek / RSS)
+    while (*p >= '0' && *p <= '9') {
+        residentPages = residentPages * 10 + (*p - '0');
+        ++p;
+    }
+
+    pmc->WorkingSetSize = residentPages * page_size_kb;
+
+    return true;
+}
 
 inline void runResourceCheck(std::ostream &out, bool waitForEnter) {
     const auto startTime = std::chrono::steady_clock::now();
@@ -39,35 +83,11 @@ inline void runResourceCheck(std::ostream &out, bool waitForEnter) {
 
     out << "\n--- Mevcut Process (Uygulama) Bellek Bilgisi ---\n";
 
-    struct rusage usage;
-    if (getrusage(RUSAGE_SELF, &usage) == 0) {
-        // getrusage() RSS'ini long tipinde verir (ki sayfalarla hesaplanır)
-        unsigned long long rss_pages = usage.ru_maxrss;
-        
-        // Linux'ta getrusage() RSS'i kilobayt cinsinden verir
-        unsigned long long rss_kb = rss_pages;
-        unsigned long long rss_mb = rss_kb / 1024ULL;
-
-        out << "Fiziksel RAM Kullanimi (Working Set) : " << rss_mb << " MB\n";
+    ProcessMemoryCountersLinux pmc;
+    if (GetProcessMemoryInfoFast(&pmc)) {
+        out << "Fiziksel RAM Kullanimi (Working Set) : " << pmc.WorkingSetSize / 1024ULL << " MB\n";
     } else {
-        // Fallback: /proc/self/statm
-        std::ifstream statmFile("/proc/self/statm");
-        if (!statmFile.is_open()) {
-            out << "Process RAM bilgisi alinamadi!\n";
-        } else {
-            unsigned long long residentPages = 0;
-            unsigned long long totalPages = 0;
-            statmFile >> totalPages >> residentPages;
-            if (!statmFile) {
-                out << "Process RAM bilgisi alinamadi!\n";
-            } else {
-                const long pageSize = sysconf(_SC_PAGESIZE);
-                const unsigned long long pageSizeBytes = pageSize > 0 ? static_cast<unsigned long long>(pageSize) : 4096ULL;
-                const unsigned long long residentKb = (residentPages * pageSizeBytes) / 1024ULL;
-
-                out << "Fiziksel RAM Kullanimi (Working Set) : " << residentKb / 1024ULL << " MB\n";
-            }
-        }
+        out << "Process RAM bilgisi alinamadi!\n";
     }
 
     const auto elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -84,16 +104,13 @@ inline void runCpuCheck(std::ostream &out, bool waitForEnter) {
     const auto startTime = std::chrono::steady_clock::now();
 
     out << "--- Sistem Islemci (CPU) Bilgileri ---\n";
-    
-    // Uygulamanin o ana kadar harcadigi CPU zamani
-    static const long tick_hz = sysconf(_SC_CLK_TCK);
-    struct tms time_buf;
-    if (times(&time_buf) != (clock_t)-1) {
-        double user_time_sec = static_cast<double>(time_buf.tms_utime) / tick_hz;
-        double sys_time_sec  = static_cast<double>(time_buf.tms_stime) / tick_hz;
-        out << "Mevcut Process User CPU Zamani  : " << user_time_sec << " saniye\n";
-        out << "Mevcut Process Kernel CPU Zamani: " << sys_time_sec << " saniye\n";
-        out << "Mevcut Process Toplam CPU Zamani: " << (user_time_sec + sys_time_sec) << " saniye\n";
+
+    out << "Kullanilan Yontem              : clock_gettime(CLOCK_PROCESS_CPUTIME_ID)\n";
+    struct timespec cpu_time;
+    if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cpu_time) == 0) {
+        const double cpu_time_sec = static_cast<double>(cpu_time.tv_sec) +
+                                    static_cast<double>(cpu_time.tv_nsec) / 1000000000.0;
+        out << "Mevcut Process CPU Zamani      : " << cpu_time_sec << " saniye\n";
     } else {
         out << "CPU zamani alinamadi!\n";
     }
@@ -109,13 +126,20 @@ inline void runCpuCheck(std::ostream &out, bool waitForEnter) {
 }
 
 inline void benchmarkCpuApiCost(std::ostream &out, int iterations, bool waitForEnter) {
-    out << "--- Sistem Islemci (CPU) API Cagri Maliyeti (Linux: times()) ---\n";
-    
-    struct tms time_buf;
-    
+    out << "--- Sistem Islemci (CPU) API Cagri Maliyeti (Linux: clock_gettime()) ---\n";
+    out << "Kullanilan Yontem              : clock_gettime(CLOCK_PROCESS_CPUTIME_ID)\n";
+
+    struct timespec cpu_time;
     const auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < iterations; ++i) {
-        times(&time_buf);
+        if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cpu_time) != 0) {
+            out << "CPU API cagri maliyeti olculemedi!\n";
+            if (waitForEnter) {
+                out << "\nCikmak icin bir tusa basin...";
+                std::cin.get();
+            }
+            return;
+        }
     }
     const auto end = std::chrono::steady_clock::now();
     
@@ -154,13 +178,13 @@ inline void benchmarkSystemRamApiCost(std::ostream &out, int iterations) {
 }
 
 inline void benchmarkProcessRamApiCost(std::ostream &out, int iterations) {
-    out << "--- Process RAM API Cagri Maliyeti (Linux: getrusage()) ---\n";
+    out << "--- Process RAM API Cagri Maliyeti (Linux: statm pread()) ---\n";
     
-    struct rusage usage;
+    ProcessMemoryCountersLinux pmc;
     
     const auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < iterations; ++i) {
-        getrusage(RUSAGE_SELF, &usage);
+        GetProcessMemoryInfoFast(&pmc);
     }
     const auto end = std::chrono::steady_clock::now();
     
